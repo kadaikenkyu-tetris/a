@@ -3,7 +3,7 @@
 <head>
 <style>
   body {
-    font-family:  Arial, sans-serif; 
+    font-family: Arial, sans-serif; 
   }
 
   #can {
@@ -64,7 +64,6 @@
 </head>
 <body>
 
-
 <div id="score-container">
   <button id="start">▶️</button>
   <button id="reset">🔄</button>
@@ -89,7 +88,7 @@ const GAME_SPEED = 300;
 const FIELD_COL = 10;
 const FIELD_ROW = 20;
 
-// ブロック一つのサイズ（ピクセル） 全体の大きさ
+// ブロック一つのサイズ（ピクセル）
 const BLOCK_SIZE = 20;
 
 // スクリーンのサイズ
@@ -172,63 +171,8 @@ let tetro_y = 0;
 let tetro_t;
 let field = [];
 let over = false;
-let lines = 0;
 let score = 0;
 let dropInterval;
-
-// ボタンの有効/無効を設定
-function setControlsEnabled(enabled) {
-    const buttons = [
-        document.getElementById("moveLeft"),
-        document.getElementById("moveRight"),
-        document.getElementById("rotate"),
-        document.getElementById("accelerate"),
-        document.getElementById("reset")
-    ];
-    
-    buttons.forEach(button => {
-        button.disabled = !enabled;
-    });
-}
-
-// キーボード入力の有効/無効を設定
-function setKeyboardEnabled(enabled) {
-    if (enabled) {
-        document.addEventListener('keydown', handleKeyDown);
-    } else {
-        document.removeEventListener('keydown', handleKeyDown);
-    }
-}
-
-function handleKeyDown(e) {
-    if (over) return;
-
-    switch (e.key) {
-        case 'a':
-        case 'A':
-            if (checkMove(-1, 0)) tetro_x--;
-            break;
-        case 'd':
-        case 'D':
-            if (checkMove(1, 0)) tetro_x++;
-            break;
-        case 's':
-        case 'S':
-            while (checkMove(0, 1)) tetro_y++;
-            break;
-        case 'w':
-        case 'W':
-            let ntetro = rotateTetro();
-            if (checkMove(0, 0, ntetro)) tetro = ntetro;
-            break;
-        case 'r':
-        case 'R':  // ここでリセット機能を追加
-            resetGame();  // リセット関数を呼び出す
-            break;
-    }
-
-    drawAll();
-}
 
 function init() {
     field = Array.from({ length: FIELD_ROW }, () => Array(FIELD_COL).fill(0));
@@ -240,8 +184,6 @@ function init() {
     over = false;
     updateScore();
     drawAll();
-    setControlsEnabled(false); // ゲーム開始前にボタンを無効にする
-    setKeyboardEnabled(false); // ゲーム開始前にキーボードを無効にする
 }
 
 function drawBlock(x, y, c) {
@@ -339,6 +281,7 @@ function checkLine() {
 
         if (flag) {
             linec++;
+
             for (let ny = y; ny > 0; ny--) {
                 for (let nx = 0; nx < FIELD_COL; nx++) {
                     field[ny][nx] = field[ny - 1][nx];
@@ -347,101 +290,69 @@ function checkLine() {
         }
     }
 
-    if (linec > 0) {
-        score += 100 * (2 ** (linec - 1));
-        updateScore();
-    }
+    score += linec;
+    updateScore();
 }
 
 function dropTetro() {
-    if (over) return;
-
-    if (checkMove(0, 1)) tetro_y++;
-    else {
+    if (checkMove(0, 1)) {
+        tetro_y++;
+    } else {
         fixTetro();
         checkLine();
+        tetro_t = Math.floor(Math.random() * (TETRO_TYPES.length - 1)) + 1;
+        tetro = TETRO_TYPES[tetro_t];
+        tetro_x = START_X;
+        tetro_y = START_Y;
 
-        if (!over) {
-            tetro_t = Math.floor(Math.random() * (TETRO_TYPES.length - 1)) + 1;
-            tetro = TETRO_TYPES[tetro_t];
-            tetro_x = START_X;
-            tetro_y = START_Y;
-
-            if (!checkMove(0, 0)) {
-                over = true;
-                clearInterval(dropInterval);
-                setControlsEnabled(false); // ゲームオーバー時にボタンを無効にする
-                setKeyboardEnabled(false); // ゲームオーバー時にキーボードを無効にする
-            }
+        if (!checkMove(0, 0)) {
+            gameOver();
         }
     }
 
     drawAll();
 }
 
-function startGame() {
-    if (!dropInterval) {
-        dropInterval = setInterval(dropTetro, GAME_SPEED);
-        setControlsEnabled(true); // ゲーム開始時にボタンを有効にする
-        setKeyboardEnabled(true); // ゲーム開始時にキーボードを有効にする
-    }
-}
-
-function stopGame() {
-    clearInterval(dropInterval);
-    dropInterval = null;
-}
-
-// リセット機能
-function resetGame() {
-    stopGame(); // ゲームの停止
-    init();     // ゲームの初期化
-    startGame(); // ゲームをスタート
-}
-
-// スタートボタンのイベントリスナーを追加
-document.getElementById("start").addEventListener("click", startGame);
-document.getElementById("reset").addEventListener("click", function() {
-    resetGame();  // リセットボタンがクリックされたときにリセット関数を呼び出す
-});
-
-// ゲームオーバー時にゲームを停止する
 function gameOver() {
     over = true;
     clearInterval(dropInterval);
-}
-
-function moveLeft() {
-    if (over) return;
-    if (checkMove(-1, 0)) tetro_x--;
     drawAll();
 }
 
-function moveRight() {
+function handleKeyDown(e) {
     if (over) return;
-    if (checkMove(1, 0)) tetro_x++;
+
+    switch (e.key) {
+        case "ArrowLeft":
+            if (checkMove(-1, 0)) tetro_x--;
+            break;
+        case "ArrowRight":
+            if (checkMove(1, 0)) tetro_x++;
+            break;
+        case "ArrowDown":
+            while (checkMove(0, 1)) tetro_y++;
+            break;
+        case "ArrowUp":
+            let ntetro = rotateTetro();
+            if (checkMove(0, 0, ntetro)) tetro = ntetro;
+            break;
+    }
+
     drawAll();
 }
 
-function rotate() {
-    if (over) return;
-    let ntetro = rotateTetro();
-    if (checkMove(0, 0, ntetro)) tetro = ntetro;
-    drawAll();
-}
+document.addEventListener("keydown", handleKeyDown);
 
-function accelerate() {
-    if (over) return;
-    while (checkMove(0, 1)) tetro_y++;
-    drawAll();
-}
+document.getElementById("start").addEventListener("click", () => {
+    if (over) init();
+    dropInterval = setInterval(dropTetro, GAME_SPEED);
+});
 
-document.getElementById("moveLeft").addEventListener("click", moveLeft);
-document.getElementById("moveRight").addEventListener("click", moveRight);
-document.getElementById("rotate").addEventListener("click", rotate);
-document.getElementById("accelerate").addEventListener("click", accelerate);
+document.getElementById("reset").addEventListener("click", () => {
+    clearInterval(dropInterval);
+    init();
+});
 
-// ゲーム初期化
 init();
 </script>
 </body>
